@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>한식뷔페식당 식단 플래너</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --surface2: #f2f4f7;
+    --surface3: #e8ecf1;
+    --border: #e4e8ee;
+    --border2: #d0d6df;
+    --text: #111827;
+    --text2: #6b7280;
+    --text3: #9ca3af;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --accent-dark: #1d4ed8;
+    --accent2: #0ea5e9;
+    --green: #059669;
+    --green-bg: #ecfdf5;
+    --green-border: #a7f3d0;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --red-border: #fecaca;
+    --orange: #ea580c;
+    --orange-bg: #fff7ed;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+
+  /* 헤더 */
+  .header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .header-icon {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 15px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.3px; }
+  .header p { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .api-badge {
+    font-size: 11px; padding: 5px 10px; border-radius: 8px;
+    background: var(--red-bg); color: var(--red);
+    cursor: pointer; border: 1px solid var(--red-border);
+    font-weight: 600; white-space: nowrap;
+  }
+  .api-badge.ok { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+
+  .container { max-width: 820px; margin: 0 auto; padding: 16px 12px; }
+
+  /* 모달 */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(17,24,39,0.45); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: var(--radius-lg);
+    padding: 24px 20px; width: 94%; max-width: 420px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+  }
+  .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .modal p { font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.7; }
+  .modal input {
+    width: 100%; padding: 11px 12px;
+    border: 1.5px solid var(--border2); border-radius: var(--radius);
+    font-family: monospace; font-size: 13px;
+    background: var(--surface2); margin-bottom: 10px; color: var(--text);
+    outline: none;
+  }
+  .modal input:focus { border-color: var(--accent); }
+  .modal-link { font-size: 12px; color: var(--accent); }
+  .modal-link a { color: var(--accent); text-decoration: none; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+
+  /* 버튼 */
+  .btn {
+    padding: 11px 16px; border-radius: var(--radius);
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; border: 1.5px solid var(--border2);
+    background: #fff; color: var(--text);
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    box-shadow: var(--shadow);
+  }
+  .btn:active { opacity: 0.7; transform: scale(0.98); }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    border-color: var(--accent-dark);
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+  }
+  .btn-primary:active { background: var(--accent-dark); }
+  .btn-full { width: 100%; padding: 15px; font-size: 15px; font-weight: 600; letter-spacing: -.2px; }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--surface2); border-radius: 12px; padding: 4px; border: 1px solid var(--border); }
+  .tab { flex: 1; padding: 9px 4px; text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 9px; color: var(--text3); border: none; background: none; line-height: 1.3; transition: all .2s; -webkit-tap-highlight-color: transparent; }
+  .tab.active { background: #fff; color: var(--accent); box-shadow: var(--shadow); }
+
+  /* 카드 */
+  .card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .card-title { font-size: 11px; font-weight: 700; color: var(--text3); margin-bottom: 14px; text-transform: uppercase; letter-spacing: .8px; }
+
+  /* 섹션 구분선 */
+  .field-row { margin-bottom: 16px; }
+  .field-row:last-child { margin-bottom: 0; }
+
+  /* 칩 */
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 7px 13px; border: 1.5px solid var(--border2); border-radius: 8px; font-size: 13px; cursor: pointer; background: #fff; color: var(--text2); transition: all .15s; -webkit-tap-highlight-color: transparent; font-weight: 500; }
+  .chip.on { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  /* 입력 */
+  textarea, input[type=text] {
+    width: 100%; padding: 11px 13px;
+    border: 1.5px solid var(--border2); border-radius: var(--radius);
+    font-family: 'Noto Sans KR', sans-serif; font-size: 16px;
+    background: var(--surface2); color: var(--text);
+    resize: vertical; outline: none;
+    -webkit-appearance: none; transition: border .15s;
+  }
+  textarea:focus, input[type=text]:focus { border-color: var(--accent); background: #fff; }
+  textarea { min-height: 72px; font-size: 14px; }
+  label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 7px; font-weight: 600; letter-spacing: .1px; }
+
+  /* 로딩 */
+  .result-area { margin-top: 14px; }
+  .loading { text-align: center; padding: 40px; color: var(--text3); }
+  .loading-spinner {
+    width: 32px; height: 32px; border: 3px solid var(--surface3);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .7s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 식단 결과 */
+  .day-block { border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 10px; overflow: hidden; box-shadow: var(--shadow); background: #fff; }
+  .day-head { background: var(--accent); padding: 10px 14px; font-size: 13px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; color: #fff; }
+  .day-body { padding: 10px 14px; }
+  .session-title { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: .6px; text-transform: uppercase; margin: 10px 0 5px; }
+  .session-title:first-child { margin-top: 0; }
+  .menu-row { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .menu-row:last-child { border-bottom: none; }
+  .mcat { font-size: 10px; color: var(--text3); min-width: 34px; padding-top: 2px; font-weight: 600; }
+  .mname { font-size: 13px; color: var(--text); }
+  .tip-box { background: var(--accent-light); border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: var(--accent-dark); margin-top: 10px; line-height: 1.7; }
+
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.25); color: #fff; font-weight: 600; }
+
+  /* 통계 */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stat-card { background: #fff; border-radius: var(--radius); padding: 14px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .stat-num { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .stat-lbl { font-size: 11px; color: var(--text3); margin-top: 2px; font-weight: 500; }
+
+  .freq-row { display: flex; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); gap: 8px; }
+  .freq-row:last-child { border-bottom: none; }
+  .freq-name { font-size: 13px; min-width: 90px; color: var(--text); }
+  .freq-bar-wrap { flex: 1; height: 5px; background: var(--surface3); border-radius: 3px; }
+  .freq-bar { height: 5px; border-radius: 3px; background: var(--accent); }
+  .freq-cnt { font-size: 11px; color: var(--text3); min-width: 24px; text-align: right; font-weight: 600; }
+
+  /* 추가 탭 */
+  .ref-date-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .ref-date-item:last-child { border-bottom: none; }
+
+  .notice { background: var(--green-bg); border: 1px solid var(--green-border); border-radius: var(--radius); padding: 11px 14px; font-size: 13px; color: var(--green); margin-top: 10px; font-weight: 500; }
+  .error-box { background: var(--red-bg); border: 1px solid var(--red-border); border-radius: var(--radius); padding: 11px 14px; font-size: 13px; color: var(--red); margin-top: 10px; }
+
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+
+  /* 장보기 */
+  .shop-section { margin-bottom: 14px; }
+  .shop-header { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-radius: var(--radius); margin-bottom: 8px; }
+  .shop-header-sean { background: var(--orange-bg); border: 1px solid #fed7aa; }
+  .shop-header-ks { background: var(--green-bg); border: 1px solid var(--green-border); }
+  .shop-header-truck { background: var(--accent-light); border: 1px solid #bfdbfe; }
+  .shop-icon { font-size: 18px; }
+  .shop-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .shop-desc { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .shop-items { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
+  .shop-item { display: flex; align-items: center; gap: 5px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13px; box-shadow: var(--shadow); }
+  .shop-item-name { color: var(--text); font-weight: 500; }
+  .shop-item-qty { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .shop-total { font-size: 12px; color: var(--text2); margin-top: 8px; padding: 0 2px; line-height: 1.6; }
+  .print-btn { background: var(--surface2); border: 1.5px solid var(--border2); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; font-weight: 600; color: var(--text2); }
+
+  @media (max-width: 500px) {
+    .action-grid { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .freq-name { min-width: 75px; font-size: 12px; }
+    .shop-items { gap: 5px; }
+    .shop-item { padding: 6px 9px; font-size: 12px; }
+    .day-body { padding: 10px 12px; }
+    .day-head { padding: 9px 12px; }
+    .btn-full { padding: 16px; font-size: 15px; }
+    .stat-num { font-size: 20px; }
+  }
+  @media print {
+    .header, .tabs, .card, .action-grid, .btn, .tip-box { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🍱</div>
+  <div style="min-width:0; flex:1;">
+    <h1 style="letter-spacing:-.4px;">한식뷔페식당 식단 플래너</h1>
+    <p style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">화성 양감면 · 450명 · AI 식단</p>
+  </div>
+  <div class="header-right">
+    <div class="api-badge" id="api-badge" onclick="openModal()">⚠ API 미설정</div>
+  </div>
+</div>
+
+<!-- API 설정 모달 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>🔑 Anthropic API 키 설정</h2>
+    <p>AI 식단 생성 기능을 사용하려면 API 키가 필요합니다.<br>키는 이 브라우저에만 저장되며 외부로 전송되지 않습니다.</p>
+    <label>API 키 입력</label>
+    <input type="text" id="api-input" placeholder="sk-ant-api03-..." autocomplete="off">
+    <div class="modal-link">키가 없으시면 → <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> 에서 발급</div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveKey()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="sw('plan')">식단 생성</button>
+    <button class="tab" onclick="sw('ref')">레퍼런스 분석</button>
+    <button class="tab" onclick="sw('add')">식단 추가</button>
+  </div>
+
+  <!-- 식단 생성 탭 -->
+  <div id="tab-plan" class="section">
+    <div class="card">
+      <div class="card-title">생성 설정</div>
+
+      <div style="margin-bottom:14px;">
+        <label>기간</label>
+        <div class="chip-group" id="days-g">
+          <div class="chip on" data-val="1">오늘 하루</div>
+          <div class="chip" data-val="5">1주 (5일)</div>
+          <div class="chip" data-val="10">2주 (10일)</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label>제공 식사</label>
+        <div class="chip-group" id="time-g">
+          <div class="chip on" data-val="점심">점심만 (기본)</div>
+          <div class="chip" data-val="아침+점심">아침+점심</div>
+          <div class="chip" data-val="전체">아침+점심+저녁</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label>스타일</label>
+        <div class="chip-group" id="style-g">
+          <div class="chip on" data-val="기존패턴유지">기존 패턴 유지</div>
+          <div class="chip" data-val="변화추가">변화 추가</div>
+          <div class="chip" data-val="제철재료강조">제철 재료 강조</div>
+        </div>
+      </div>
+
+      <div>
+        <label>특별 요청 (선택)</label>
+        <textarea id="req" placeholder="예: 어제 닭도리탕 했으니 닭 빼주세요, 튀김 이번 주 너무 많이 했어요..."></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="genMeal()">✨ 레퍼런스 기반 식단 생성</button>
+    <div class="result-area" id="result"></div>
+  </div>
+
+  <!-- 레퍼런스 분석 탭 -->
+  <div id="tab-ref" class="section" style="display:none">
+    <div class="stat-grid" id="stats"></div>
+    <div class="card">
+      <div class="card-title">자주 쓰는 주찬 (단백질)</div>
+      <div id="freq-main"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">자주 쓰는 부찬·사이드</div>
+      <div id="freq-side"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">내 식당 식단 패턴</div>
+      <div class="menu-row"><div class="mcat">구성</div><div class="mname">국물 1 + 주찬 1~2 + 튀김·강정 1 + 나물·무침 1~2 + 과일 + 김치류</div></div>
+      <div class="menu-row"><div class="mcat">고정</div><div class="mname">과일 매일, 야채겉절이 거의 매일, 김치 매일</div></div>
+      <div class="menu-row"><div class="mcat">단백질</div><div class="mname">닭·돼지·생선·두부 골고루 순환</div></div>
+      <div class="menu-row"><div class="mcat">면류</div><div class="mname">국수·쫄면·비빔국수 주기적 포함</div></div>
+      <div class="menu-row"><div class="mcat">국물</div><div class="mname">된장·콩나물·김치국·순두부 등 다양하게 순환</div></div>
+    </div>
+  </div>
+
+  <!-- 식단 추가 탭 -->
+  <div id="tab-add" class="section" style="display:none">
+    <div class="card">
+      <div class="card-title">새 식단 추가</div>
+      <p style="font-size:13px; color:var(--text2); margin-bottom:14px;">추가한 식단은 다음 AI 생성 시 자동으로 레퍼런스에 반영됩니다.</p>
+      <div style="margin-bottom:12px;">
+        <label>날짜</label>
+        <input type="text" id="add-date" placeholder="예: 2026-05-13">
+      </div>
+      <div>
+        <label>메뉴 (쉼표로 구분)</label>
+        <textarea id="add-menu" placeholder="예: 된장국, 제육볶음, 감자조림, 시금치나물, 과일, 배추김치"></textarea>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="addMenu()">+ 레퍼런스에 추가</button>
+    <div id="add-result"></div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">저장된 레퍼런스 (<span id="ref-count">0</span>건)</div>
+      <div id="ref-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const INITIAL_REF = [
+  // 4월
+  { date: '2026-04-01', menus: ['콩나물국','수육','새우젓','두부조림','치즈단호박코로케','찐만두','초간장','무생채','상추','배추','쌈장'] },
+  { date: '2026-04-01', menus: ['북엇국','고등어조림','동그랑땡','파김치','과일','김치'] },
+  { date: '2026-04-02', menus: ['미역국','돈김치찜','닭갈비갈아조림','낀따루','민어조기','가지탕수소스','손까락어묵','후랑크볶음','오이무침','청포묵무침','과일','열무','갓김치'] },
+  { date: '2026-04-02', menus: ['장터국밥','제육볶음','튀김','포테토','케찹','호박볶음','무생채','상추','쌈장','과일','김치'] },
+  { date: '2026-04-03', menus: ['참치김치찌개','돈장조림','계란찜','자반구이','느타리맛살튀김','생깻잎양념','과일','김치'] },
+  { date: '2026-04-03', menus: ['순두부찌개','목전지잡육불고기','가지볶음','알배추나물','과일','김치'] },
+  { date: '2026-04-04', menus: ['얼큰콩나물국','김치생돼지갈비찜','튀김','샌드위치','비엔나','쪽파김치','야채','과일','김치'] },
+  { date: '2026-04-04', menus: ['돼지갈비찜','튀김','가지볶음','과일'] },
+  { date: '2026-04-06', menus: ['소고기무국','안동찜닭','튀김','계란떡볶이','무나물','콩나물','양배추','오이','야채겉절이','과일','김치'] },
+  { date: '2026-04-06', menus: ['근대된장국','제육볶음','꽃빵','무생채','청경채나물','과일','김치'] },
+  { date: '2026-04-07', menus: ['어묵국','제육볶음','수제스테이크','생선','공룡알튀김','새우꽈리볶음','콩나물무침','과일','김치','상추','쌈장'] },
+  { date: '2026-04-07', menus: ['콩나물국','닭간장볶음','계란말이','순대','내장','느타리버섯','비엔나소시지','과일','김치'] },
+  { date: '2026-04-08', menus: ['만두국','치킨','꽁치조림','마파두부','야채겉절이','미역줄기볶음','양배추샐러드드레싱','과일','김치'] },
+  { date: '2026-04-08', menus: ['민새우탕','돈장조림','오징어볶음','새송이전','고추지','나물','마른김간장','과일','김치'] },
+  { date: '2026-04-09', menus: ['된장국','돈불고기','코다리강정','김치볶음','순두부양념장','무생채','표고버섯','과일','깍두기','얼갈이겉절이'] },
+  { date: '2026-04-09', menus: ['미역국','훈제오리볶음','튀김','부침개','어묵볶음','열무나물','부추양파오리엔탈드레싱','과일','김치'] },
+  { date: '2026-04-10', menus: ['김치국','뼈찜','계란장','해물까스양념','가지볶음','야채겉절이','과일','김치'] },
+  { date: '2026-04-10', menus: ['감자국','제육볶음','튀김','부침개','멸치볶음','고구마찜','상추','고추','과일','김치'] },
+  { date: '2026-04-11', menus: ['꽃게찌개','목전지잡육갈비찜','크리스피텐더','찐빵','콩나물','소시지','머스타드','파김치','과일','김치'] },
+  { date: '2026-04-13', menus: ['북어국','닭도리탕','느타리버섯계란야채전','타코야끼','브로콜리초장','미트볼떡볶이','야채겉절이','과일','김치'] },
+  { date: '2026-04-13', menus: ['콩나물국','김치볶음','두부구이','꽃빵','튀김','방풍나물','양념깻잎지','과일','김치'] },
+  { date: '2026-04-14', menus: ['순두부찌개','제육볶음','꽁치고갈비','계란말이','손까락어묵볶음','상추','쌈장','나물','과일','배추겉절이'] },
+  { date: '2026-04-14', menus: ['된장국','갈비찜','동그랑땡','찐빵튀김','열무나물','치킨텐더샐러드','파김치','과일','김치'] },
+  { date: '2026-04-15', menus: ['닭다리삼계','돈메추리장조림','생선까스드레싱','비빔막국수','비엔나호박볶음','옥수수콘사라다','오이양파피클','과일','김치'] },
+  { date: '2026-04-15', menus: ['팽이유부미소국','목전지잡육불고기','훈제오리','마파두부','깻잎나물','과일','김치'] },
+  { date: '2026-04-16', menus: ['게찌개','8mm불고기','치킨까스','짜장중화면','단무지','청경채나물','과일','김치'] },
+  { date: '2026-04-16', menus: ['김치수제비','김치제육볶음','고기만두간장','고추지','오이스틱','쌈장','과일','김치'] },
+  { date: '2026-04-17', menus: ['미역국','간장닭갈비','아귀콩나물찜','해물동그랑땡','가지감자조림','쑥갓두부무침','야채겉절이','딸기','열무김치'] },
+  { date: '2026-04-17', menus: ['닭곰탕','제육볶음','부침개','꽈리멸치','상추','표고버섯','과일','김치'] },
+  { date: '2026-04-18', menus: ['청경채된장국','돈불고기새우볶음','순살치킨','단호박찜','가지감자조림','나물','오이무침','김치','과일'] },
+  { date: '2026-04-20', menus: ['어묵국','돈김치찜','코다리강정','잡채','도토리묵양념장','샐러드','과일','열무김치'] },
+  { date: '2026-04-20', menus: ['콩나물국','돈갈비찜','튀김','호박부침개','오뎅볶음','오이무침','땅콩모듬장','과일','김치'] },
+  { date: '2026-04-21', menus: ['참치김치찌개','안동찜닭','수제스테이크','메추리장조림','쫄면','수제어묵메추리볶음','팽이오이건맛살무침'] },
+  { date: '2026-04-21', menus: ['순두부찌개','돈족발','사각햄','찐만두','김치볶음','열무나물','과일','김치'] },
+  { date: '2026-04-22', menus: ['된장국','8mm목살소금구이','못난이치킨까스','두부조림','표고볶음','무생채','상추','배추','쌈장','과일','요구르트','김치'] },
+  { date: '2026-04-22', menus: ['민물새우탕','꽁치조림','돼지머리고기','새우젓','공룡알','도라지오이무침','간장고추지','과일','김치'] },
+  { date: '2026-04-23', menus: ['콩나물북어국','치킨','오징어야채새우볶음','오이무침','양배추샐러드드레싱','과일','백김치'] },
+  { date: '2026-04-23', menus: ['미소된장국','목전지불고기','계란말이','두부조림','가지볶음','상추','쌈장','낙지젓갈','과일','김치'] },
+  { date: '2026-04-24', menus: ['얼큰콩나물국','쪽갈비','생돼지갈비','치킨까스돈까스소스','찐만두초간장','오리훈제샐러드','숙주나물','꽈리건새우볶음','김치','과일'] },
+  { date: '2026-04-24', menus: ['김치국','닭갈비','치킨까스','계란떡볶이','포테토','열무나물','야채겉절이','김치','과일'] },
+  { date: '2026-04-25', menus: ['목전지소금구이','훈제오리볶음','치킨불고기','고로케튀김','고구마찜','느타리버섯','오이','양파','쌈장','과일','김치','도토리야채무침'] },
+  { date: '2026-04-27', menus: ['소고기무국','제육볶음','민어조기구이','계란찜','치킨팝콘야채볶음','비빔메밀','과일','상추','고추','쌈장','김치'] },
+  { date: '2026-04-27', menus: ['된장국','뼈찜','치킨스틱튀김','취나물','오뎅볶음','아삭고추','쌈장','과일','김치'] },
+  { date: '2026-04-28', menus: ['설렁탕','닭갈비','해물까스드레싱','느타리계란야채전','애호박볶음','멸치꽈리','열무김치','과일','깍두기'] },
+  { date: '2026-04-28', menus: ['참치김치찌개','자반국','제육볶음','튀김','알배추','상추','쌈장','취나물','표고','호박','과일','김치'] },
+  { date: '2026-04-29', menus: ['넓적닭다리구이','고구마튀김','패티스테이크','손까락어묵볶음','가지찜간장양념','일자콩나물','과일','열무김치'] },
+  { date: '2026-04-29', menus: ['콩나물국','돈족발','오징어볶음','튀김','고사리볶음','야채겉절이','과일','깍두기','열무김치'] },
+  { date: '2026-04-30', menus: ['어묵국','돈메추리장조림','꽁치조림','계란말이','오이무침','미역줄기볶음','연두부양념장'] },
+  { date: '2026-04-30', menus: ['소고기무국','돈불고기','튀김','상추','고추','쌈장','오이무침','과일','김치'] },
+  // 5월
+  { date: '2026-05-12', menus: ['설렁탕','닭도리탕','수제스테이크','만두강정','순두부고명/양념장','상추치커리겉절이','과일','파김치','깍두기','잔치국수'] },
+  { date: '2026-05-11', menus: ['콩나물국','돼지김치찜','낀따루구이','두부계란부침','미트볼떡복이','쫄면','야채겉절이','과일','열무김치','보리밥'] },
+  { date: '2026-05-09', menus: ['팽이미소된장국','닭다리바베큐','튀김','메추리알볶음','멸치볶음','열무나물','야채겉절이','과일','김치'] },
+  { date: '2026-05-08', menus: ['꽃게찌개','오리볶음','생선까스/드레싱','마파두부','탕수육볶음','오이무침','야채겉절이','과일','김치'] },
+  { date: '2026-05-08', menus: ['돈잡육','조랭이떡미역국','공룡알','찐만두','가지어묵볶음','상추','과일','김치'] },
+  { date: '2026-05-07', menus: ['된장국','돼지불고기','코다리강정','마파두부떡복이','비엔나볶음','과일사라다','취나물','과일','김치'] },
+  { date: '2026-05-07', menus: ['콩나물김치국','닭도리','돈까스튀김','전','샐러드','고추지','호박볶음','과일','김치'] },
+  { date: '2026-05-06', menus: ['북어국','치킨','참치김치볶음','오징어야채볶음','애호박볶음','비빔국수','양배추샐러드/드레싱','열무김치'] },
+  { date: '2026-05-06', menus: ['순두부찌개','머리고기','돈매알조림','튀김','숙주나물'] },
+  { date: '2026-05-05', menus: ['미역국','닭도리탕','핫도그','애호박부침','동태전','꽈리건새우볶음','숙주나물','야채겉절이','과일','김치'] },
+  { date: '2026-05-04', menus: ['제육볶음','튀김','야채고로케','부추전','잡채','새송이맛살볶음','상추','쌈장','과일','김치'] },
+  { date: '2026-05-04', menus: ['된장국','돈갈비','튀김','오뎅볶음','나물','오이무침','과일','김치'] },
+  { date: '2026-05-02', menus: ['육개장','닭갈비','탕수육튀김','고구마찜','청경채나물','오뎅볶음','오이양파','쌈장','과일','김치'] },
+  { date: '2026-05-01', menus: ['돼지불고기','생선까스','드레싱','두부구이양념','교자찐만두','도라지무침','야채겉절이','상추','쌈장'] },
+  { date: '2026-05-01', menus: ['김치국','훈제오리볶음','생선까스','두부구이양념','교자만두찜','도라지무침','야채겉절이','과일','김치'] },
+];
+
+let refData = JSON.parse(localStorage.getItem('hambab_ref') || 'null') || [...INITIAL_REF];
+let apiKey = localStorage.getItem('hambab_api') || '';
+
+function saveRef() { localStorage.setItem('hambab_ref', JSON.stringify(refData)); }
+
+// API 키
+function openModal() {
+  document.getElementById('api-input').value = apiKey;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function saveKey() {
+  const val = document.getElementById('api-input').value.trim();
+  if (!val.startsWith('sk-')) { alert('올바른 API 키를 입력해 주세요. (sk- 로 시작)'); return; }
+  apiKey = val;
+  localStorage.setItem('hambab_api', apiKey);
+  updateBadge();
+  closeModal();
+}
+function updateBadge() {
+  const b = document.getElementById('api-badge');
+  if (apiKey) { b.textContent = '✓ API 연결됨'; b.className = 'api-badge ok'; }
+  else { b.textContent = '⚠ API 키 미설정'; b.className = 'api-badge'; }
+}
+updateBadge();
+
+// 탭
+function sw(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['plan','ref','add'][i]===name));
+  ['plan','ref','add'].forEach(n => document.getElementById('tab-'+n).style.display = n===name?'block':'none');
+  if (name==='ref') renderRef();
+  if (name==='add') renderAddTab();
+}
+
+// 칩 선택
+document.querySelectorAll('.chip-group').forEach(g => {
+  g.addEventListener('click', e => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    g.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+    chip.classList.add('on');
+  });
+});
+
+function getChip(gid) {
+  const el = document.querySelector('#'+gid+' .chip.on');
+  return el ? (el.dataset.val || el.textContent.trim()) : '';
+}
+
+// 레퍼런스 분석
+function getFreq(keywords, topN) {
+  const cnt = {};
+  refData.flatMap(d => d.menus).forEach(m => {
+    if (keywords.some(k => m.includes(k))) cnt[m] = (cnt[m]||0)+1;
+  });
+  return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,topN);
+}
+
+function renderFreqList(elId, data) {
+  const max = data[0]?.[1] || 1;
+  document.getElementById(elId).innerHTML = data.map(([name, cnt]) =>
+    `<div class="freq-row">
+      <span class="freq-name">${name}</span>
+      <div class="freq-bar-wrap"><div class="freq-bar" style="width:${Math.round(cnt/max*100)}%"></div></div>
+      <span class="freq-cnt">${cnt}회</span>
+    </div>`).join('');
+}
+
+function renderRef() {
+  const allMenus = refData.flatMap(d => d.menus);
+  const mainKw = ['불고기','볶음','구이','조림','찜','튀김','강정','갈비','도리','까스','전','오리','닭','돼지','생선','삼겹','오징어','머리고기','훈제','스테이크','고로케','핫도그','미트볼'];
+  const sideKw = ['나물','무침','겉절이','샐러드','김치','깍두기','열무','상추','과일','숙주','고구마','도라지'];
+  renderFreqList('freq-main', getFreq(mainKw, 10));
+  renderFreqList('freq-side', getFreq(sideKw, 10));
+  const dates = [...new Set(refData.map(d=>d.date))];
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${dates.length}</div><div class="stat-lbl">입력된 날짜</div></div>
+    <div class="stat-card"><div class="stat-num">${allMenus.length}</div><div class="stat-lbl">총 메뉴 수</div></div>
+    <div class="stat-card"><div class="stat-num">매일</div><div class="stat-lbl">과일 제공</div></div>
+    <div class="stat-card"><div class="stat-num">2주+</div><div class="stat-lbl">순환 주기</div></div>
+  `;
+}
+
+// 식단 추가
+function addMenu() {
+  const date = document.getElementById('add-date').value.trim();
+  const menu = document.getElementById('add-menu').value.trim();
+  const res = document.getElementById('add-result');
+  if (!date || !menu) { res.innerHTML = '<div class="error-box">날짜와 메뉴를 모두 입력해 주세요.</div>'; return; }
+  const menus = menu.split(/[,，、]/).map(m=>m.trim()).filter(Boolean);
+  refData.push({ date, menus });
+  saveRef();
+  res.innerHTML = '<div class="notice">✓ 레퍼런스에 추가되었습니다. 다음 생성 시 반영됩니다.</div>';
+  document.getElementById('add-date').value = '';
+  document.getElementById('add-menu').value = '';
+  renderAddTab();
+}
+
+function renderAddTab() {
+  const unique = [...new Set(refData.map(d=>d.date))].sort().reverse();
+  document.getElementById('ref-count').textContent = unique.length;
+  document.getElementById('ref-list').innerHTML = unique.slice(0,20).map(d =>
+    `<div class="ref-date-item"><span>${d}</span><span class="badge">${refData.filter(r=>r.date===d).length}세트</span></div>`
+  ).join('');
+}
+
+// 식단 생성
+async function genMeal() {
+  if (!apiKey) { openModal(); return; }
+
+  const numDays = parseInt(getChip('days-g')) || 1;
+  const time = getChip('time-g');
+  const style = getChip('style-g');
+  const req = document.getElementById('req').value;
+  const el = document.getElementById('result');
+
+  el.innerHTML = `<div class="loading"><div class="loading-spinner"></div>레퍼런스 분석하고 식단 구성 중...</div>`;
+
+  const refSummary = refData.slice(-10).map(d => `${d.date}: ${d.menus.join(', ')}`).join('\n');
+  const sessions = time==='점심' ? [['점심',300]] : time==='아침+점심' ? [['아침',50],['점심',300]] : [['아침',50],['점심',300],['저녁',100]];
+
+  const prompt = `당신은 한식뷔페식당 전문 영양사입니다. 아래 실제 운영 식단 레퍼런스를 분석해서 새로운 식단을 짜주세요.
+
+[실제 운영 레퍼런스]
+${refSummary}
+
+[식당 기본 정보]
+- 위치: 경기도 화성시 양감면
+- 전체 식수: 400~450명 (점심 300명 / 아침·저녁은 소규모)
+- 주요 식자재 구매처: 씨엔푸드몰(화성 송산면 - 육류·가공품·건어물), 케이에스푸드(화성 인근 - 두부·계란·건식재료)
+- 과일·야채: 시장 트럭 납품 (제철 재료 위주)
+
+[핵심 운영 방식 - 반드시 반영]
+- 점심이 메인: 식재료 발주·메뉴 기획은 점심(300명) 기준으로 함
+- 아침·저녁은 점심 남은 재료 + 재고로 구성: 별도 발주 최소화
+  예) 점심에 제육볶음 했으면 → 저녁은 남은 돼지고기로 볶음밥·국 활용
+  예) 점심에 국 끓인 재료 → 아침에 죽이나 간단한 국으로 활용
+- 아침은 간단하게: 국 1가지 + 밑반찬 2~3가지면 충분 (죽, 국, 계란 등)
+- 저녁도 간소하게: 점심 메뉴 일부 + 국 or 찌개 정도
+
+[이 식당의 식단 특징 - 반드시 유지]
+- 과일 매일 제공 (점심)
+- 야채겉절이/샐러드 거의 매일 (점심)
+- 국물 요리 1종 필수 (된장국, 콩나물국, 김치국, 순두부찌개 등 순환)
+- 튀김·강정류 활용
+- 면 메뉴(국수, 쫄면 등) 주기적 포함
+- 단백질: 닭/돼지/생선/두부 골고루
+- 레퍼런스에 최근 7일 내 나온 메뉴는 반복하지 않기
+
+[생성 조건]
+- 기간: ${numDays}일
+- 식사: ${sessions.map(([t,n])=>t+' '+n+'명').join(', ')}
+- 스타일: ${style}
+- 특별 요청: ${req || '없음'}
+
+※ 메뉴는 식사당 최대 7개, tip은 한 줄로 짧게. JSON만 응답:
+{"days":[{"label":"1일차","sessions":[{"time":"점심","headcount":300,"menu":[{"cat":"국","name":"된장찌개"},{"cat":"주찬","name":"제육볶음"},{"cat":"부찬","name":"나물"},{"cat":"사이드","name":"과일"},{"cat":"김치","name":"배추김치"}]}]}],"tip":"운영 포인트"}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || res.status);
+    }
+
+    const data = await res.json();
+    const text = data.content.map(i=>i.text||'').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    renderMeal(parsed);
+  } catch(e) {
+    el.innerHTML = `<div class="error-box">오류: ${e.message}<br><br>API 키를 다시 확인해 주세요.</div>`;
+  }
+}
+
+function renderMeal(data) {
+  const el = document.getElementById('result');
+  let html = '';
+  data.days.forEach(day => {
+    html += `<div class="day-block">
+      <div class="day-head">
+        <span>${day.label}</span>
+        <span class="badge">${day.sessions.length}끼 제공</span>
+      </div>
+      <div class="day-body">`;
+    day.sessions.forEach(sess => {
+      if (day.sessions.length > 1) html += `<div class="session-title">${sess.time} · ${sess.headcount}명</div>`;
+      sess.menu.forEach(m => {
+        html += `<div class="menu-row"><div class="mcat">${m.cat}</div><div class="mname">${m.name}</div></div>`;
+      });
+    });
+    html += '</div></div>';
+  });
+  if (data.tip) html += `<div class="tip-box">💡 ${data.tip}</div>`;
+  html += `<div class="action-grid">
+    <button class="btn" onclick="askShoppingList()">🛒 장보기 목록</button>
+    <button class="btn" onclick="askCookingOrder()">⏱ 조리 타임라인</button>
+  </div>
+  <button class="btn btn-full" style="margin-top:8px; background:#f8fafc; border-color:#cbd5e1;" onclick="printMealTable()">🖨 식단표 인쇄</button>`;
+  el.innerHTML = html;
+  window._lastMeal = data;
+}
+
+function printMealTable() {
+  if (!window._lastMeal) return;
+  const data = window._lastMeal;
+  const date = new Date().toLocaleDateString('ko-KR', {year:'numeric',month:'long',day:'numeric',weekday:'long'});
+
+  // 카테고리별 색상
+  const catColor = { '국':'#2563eb','찌개':'#2563eb','탕':'#2563eb','주찬':'#dc2626','부찬':'#059669','사이드':'#7c3aed','김치':'#d97706','면':'#0891b2','기타':'#6b7280' };
+  function getCatColor(cat) {
+    for (const [k,v] of Object.entries(catColor)) { if (cat.includes(k)) return v; }
+    return '#6b7280';
+  }
+
+  let html = `<!DOCTYPE html><html lang="ko"><head>
+  <meta charset="UTF-8">
+  <title>식단표</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+    @page { margin: 15mm 12mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: #fff; color: #111; font-size: 14px; }
+
+    /* 헤더 */
+    .hd { border-bottom: 3px solid #1e3a5f; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .hd-left h1 { font-size: 24px; font-weight: 700; color: #1e3a5f; letter-spacing: -.5px; }
+    .hd-left p { font-size: 12px; color: #777; margin-top: 4px; }
+    .hd-right { text-align: right; font-size: 12px; color: #999; line-height: 1.7; }
+
+    /* 식단 카드 그리드 */
+    .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .day-card { border: 1.5px solid #e5e7eb; border-radius: 10px; overflow: hidden; break-inside: avoid; }
+    .day-card-head { background: #1e3a5f; color: #fff; padding: 8px 12px; font-size: 13px; font-weight: 700; }
+    .day-card-body { padding: 10px 12px; }
+    .sess-label { font-size: 10px; font-weight: 700; color: #2563eb; letter-spacing: .5px; text-transform: uppercase; margin: 8px 0 5px; border-left: 3px solid #2563eb; padding-left: 6px; }
+    .sess-label:first-child { margin-top: 0; }
+    .menu-line { display: flex; align-items: baseline; gap: 6px; padding: 3px 0; border-bottom: 1px dashed #f0f0f0; }
+    .menu-line:last-child { border-bottom: none; }
+    .menu-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+    .menu-cat-text { font-size: 10px; color: #aaa; min-width: 28px; }
+    .menu-name { font-size: 13px; color: #111; font-weight: 500; line-height: 1.5; }
+
+    /* 팁 */
+    .tip-box { background: #eff6ff; border-left: 4px solid #2563eb; padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 12px; color: #1d4ed8; margin-bottom: 20px; line-height: 1.6; }
+
+    /* 하단 */
+    .footer { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #e5e7eb; padding-top: 14px; }
+    .footer-note { font-size: 11px; color: #999; line-height: 1.7; }
+    .sign-row { display: flex; gap: 12px; }
+    .sign-box { border: 1px solid #ddd; border-radius: 8px; padding: 8px 24px; text-align: center; }
+    .sign-title { font-size: 11px; color: #777; font-weight: 600; }
+    .sign-space { height: 28px; }
+  </style>
+  </head><body>
+  <div class="hd">
+    <div class="hd-left">
+      <h1>한식뷔페식당 식단표</h1>
+      <p>화성 양감면</p>
+    </div>
+    <div class="hd-right">
+      <div>${date}</div>
+      <div>출력일 기준</div>
+    </div>
+  </div>
+  <div class="day-grid">`;
+
+  data.days.forEach(day => {
+    html += `<div class="day-card">
+      <div class="day-card-head">${day.label}</div>
+      <div class="day-card-body">`;
+    day.sessions.forEach((sess, si) => {
+      if (day.sessions.length > 1) {
+        html += `<div class="sess-label">${sess.time}</div>`;
+      }
+      sess.menu.forEach(m => {
+        const color = getCatColor(m.cat);
+        html += `<div class="menu-line">
+          <div class="menu-dot" style="background:${color};"></div>
+          <span class="menu-cat-text">${m.cat}</span>
+          <span class="menu-name">${m.name}</span>
+        </div>`;
+      });
+    });
+    html += `</div></div>`;
+  });
+
+  html += `</div>`;
+
+  if (data.tip) {
+    html += `<div class="tip-box">💡 ${data.tip}</div>`;
+  }
+
+  html += `<div class="footer">
+    <div class="footer-note">
+      ※ 식단은 식재료 수급 상황에 따라 변경될 수 있습니다.<br>
+      ※ 아침·저녁은 점심 잔여 재료로 운영됩니다.
+    </div>
+    <div class="sign-row">
+      <div class="sign-box"><div class="sign-title">조리사 확인</div><div class="sign-space"></div></div>
+      <div class="sign-box"><div class="sign-title">원장 확인</div><div class="sign-space"></div></div>
+    </div>
+  </div>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 600);
+}
+
+async function askShoppingList() {
+  if (!_lastMeal) return;
+  if (!apiKey) { openModal(); return; }
+
+  const menus = _lastMeal.days.flatMap(d => d.sessions.flatMap(s => s.menu.map(m => m.name)));
+  const totalPeople = _lastMeal.days.reduce((a, d) => {
+    return a + d.sessions.reduce((b, s) => b + s.headcount, 0);
+  }, 0) / _lastMeal.days.length;
+  const days = _lastMeal.days.length;
+
+  const el = document.getElementById('result');
+  el.innerHTML += `<div class="loading" id="shop-loading"><div class="loading-spinner"></div>구매처별 장보기 목록 생성 중...</div>`;
+
+  const prompt = `한식뷔페식당 장보기 목록을 구매처별로 분류해줘.
+
+메뉴: ${menus.join(', ')}
+인원 기준: 점심 300명 (발주 기준) / 아침·저녁은 점심 남은 재료 활용이라 별도 발주 불필요
+기간: ${days}일치
+구매처 정보:
+- 씨엔푸드몰: 육류(돼지/닭/소/오리), 수산물(생선/해물), 가공식품(튀김류/만두/어묵/소시지/햄), 건어물, 소스류
+- 케이에스푸드: 두부, 계란, 잡곡, 콩류, 건식재료, 양념류
+- 시장트럭(당일납품): 신선채소, 나물류, 과일, 두부(신선), 콩나물, 버섯류
+※ 수량은 반드시 점심 300명 기준으로 산출할 것. 아침·저녁은 점심 잔여 재료 사용이므로 별도 계산 불필요.
+
+반드시 JSON만 응답 (다른 텍스트 없음):
+{
+  "sean": {
+    "name": "씨엔푸드몰",
+    "items": [
+      {"name": "목전지(제육용)", "qty": "15kg", "memo": "제육볶음용"},
+      {"name": "코다리", "qty": "5kg", "memo": "강정용"}
+    ]
+  },
+  "ks": {
+    "name": "케이에스푸드",
+    "items": [
+      {"name": "계란", "qty": "5판(150개)", "memo": "계란찜·부침용"}
+    ]
+  },
+  "truck": {
+    "name": "시장 트럭 납품",
+    "items": [
+      {"name": "시금치", "qty": "3kg", "memo": "나물용"},
+      {"name": "과일(사과/배 등)", "qty": "적당량", "memo": "매일 후식"}
+    ]
+  },
+  "total_tip": "전체 장보기 시 주의사항 한두줄"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.map(i => i.text || '').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    renderShoppingList(parsed);
+  } catch(e) {
+    document.getElementById('shop-loading').outerHTML =
+      `<div class="error-box">장보기 목록 생성 오류: ${e.message}</div>`;
+  }
+}
+
+function renderShoppingList(data) {
+  window._lastShop = data;
+  const shops = [
+    { key: 'sean', cls: 'shop-header-sean', icon: '🐟', sub: '육류·수산·가공식품' },
+    { key: 'ks',   cls: 'shop-header-ks',   icon: '🥚', sub: '두부·계란·건식재료' },
+    { key: 'truck',cls: 'shop-header-truck', icon: '🥬', sub: '채소·나물·과일 (당일납품)' },
+  ];
+
+  let html = `<div class="card" style="margin-top:14px;" id="shop-result">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div style="font-size:14px; font-weight:700;">🛒 구매처별 장보기 목록</div>
+      <button class="print-btn" onclick="printShopList()">🖨 인쇄</button>
+    </div>`;
+
+  shops.forEach(({ key, cls, icon, sub }) => {
+    const shop = data[key];
+    if (!shop || !shop.items?.length) return;
+    html += `<div class="shop-section">
+      <div class="shop-header ${cls}">
+        <span class="shop-icon">${icon}</span>
+        <div>
+          <div class="shop-name">${shop.name}</div>
+          <div class="shop-desc">${sub}</div>
+        </div>
+        <div style="margin-left:auto; font-size:12px; color:var(--text2);">${shop.items.length}개 품목</div>
+      </div>
+      <div class="shop-items">`;
+    shop.items.forEach(item => {
+      html += `<div class="shop-item">
+        <span class="shop-item-name">${item.name}</span>
+        <span class="shop-item-qty">${item.qty}</span>
+      </div>`;
+    });
+    html += `</div>
+      <div class="shop-total">📝 ${shop.items.map(i => i.memo ? `${i.name}(${i.memo})` : i.name).join(' · ')}</div>
+    </div>`;
+  });
+
+  if (data.total_tip) {
+    html += `<div class="tip-box" style="margin-top:10px;">💡 ${data.total_tip}</div>`;
+  }
+  html += `</div>`;
+
+  document.getElementById('shop-loading').outerHTML = html;
+}
+
+function printShopList() {
+  if (!window._lastShop) return;
+  const data = window._lastShop;
+  const shops = [
+    { key: 'sean', icon: '🐟', label: '씨엔푸드몰' },
+    { key: 'ks',   icon: '🥚', label: '케이에스푸드' },
+    { key: 'truck',icon: '🥬', label: '시장 트럭 납품' },
+  ];
+  let win = window.open('', '_blank');
+  let body = `<html><head><title>장보기 목록</title>
+  <style>
+    body { font-family: 'Noto Sans KR', sans-serif; padding: 24px; font-size: 14px; }
+    h2 { font-size: 18px; margin-bottom: 4px; }
+    .date { color: #888; font-size: 12px; margin-bottom: 20px; }
+    .section { margin-bottom: 20px; }
+    .shop-name { font-size: 15px; font-weight: 700; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border: 1px solid #ddd; padding: 6px 10px; font-size: 13px; }
+    th { background: #f5f5f5; font-weight: 600; }
+    .tip { margin-top: 16px; background: #fdf3e7; padding: 10px; border-radius: 6px; font-size: 13px; }
+  </style></head><body>
+  <h2>🛒 장보기 목록</h2>
+  <div class="date">${new Date().toLocaleDateString('ko-KR')} 출력</div>`;
+
+  shops.forEach(({ key, icon, label }) => {
+    const shop = data[key];
+    if (!shop?.items?.length) return;
+    body += `<div class="section">
+      <div class="shop-name">${icon} ${label}</div>
+      <table><tr><th>품목</th><th>수량</th><th>용도</th></tr>`;
+    shop.items.forEach(item => {
+      body += `<tr><td>${item.name}</td><td>${item.qty}</td><td>${item.memo || '-'}</td></tr>`;
+    });
+    body += `</table></div>`;
+  });
+
+  if (data.total_tip) body += `<div class="tip">💡 ${data.total_tip}</div>`;
+  body += `</body></html>`;
+  win.document.write(body);
+  win.document.close();
+  win.print();
+}
+
+async function askCookingOrder() {
+  if (!_lastMeal) return;
+  const menus = _lastMeal.days[0].sessions.flatMap(s => s.menu.map(m=>m.name));
+  const prompt = `아래 메뉴 조리 순서와 타임라인(오전 6시 시작 기준)을 짜줘:\n${menus.join(', ')}`;
+  await askAI(prompt);
+}
+
+async function askAI(prompt) {
+  if (!apiKey) { openModal(); return; }
+  const el = document.getElementById('result');
+  const prev = el.innerHTML;
+  el.innerHTML += `<div class="loading" id="ai-loading"><div class="loading-spinner"></div>AI 응답 생성 중...</div>`;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.map(i=>i.text||'').join('');
+    document.getElementById('ai-loading').outerHTML =
+      `<div class="tip-box" style="margin-top:10px;white-space:pre-wrap;">${text}</div>`;
+  } catch(e) {
+    document.getElementById('ai-loading').outerHTML =
+      `<div class="error-box">오류가 발생했습니다: ${e.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>
